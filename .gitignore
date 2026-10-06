@@ -1,0 +1,101 @@
+# ================================
+# Environment / Secrets
+# ================================
+
+.env
+.env.*
+!.env.example
+
+# ================================
+# Node / React / Vite
+# ================================
+
+node_modules/
+frontend/node_modules/
+
+dist/
+frontend/dist/
+
+.vite/
+frontend/.vite/
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ================================
+# Go
+# ================================
+
+# Go build binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go test/build output
+*.test
+*.out
+
+# Coverage files
+coverage.out
+coverage.html
+
+# ================================
+# Logs
+# ================================
+
+*.log
+logs/
+
+# ================================
+# OS generated files
+# ================================
+
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ================================
+# IDE / Editor
+# ================================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ================================
+# Temporary files
+# ================================
+
+*.tmp
+*.temp
+*.cache
+
+# ================================
+# Build / generated files
+# ================================
+
+build/
+out/
+tmp/
+temp/
+
+# ================================
+# Local database / search data
+# ================================
+
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# ================================
+# Misc
+# ================================
+
+*.orig
+*.rej
