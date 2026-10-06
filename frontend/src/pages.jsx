@@ -14,7 +14,7 @@ import {
   Cell,
 } from "recharts";
 
-import { Trash2, Check, Plus } from "lucide-react";
+import { Trash2, Check, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 
 import api from "./api";
 
@@ -233,7 +233,7 @@ export function Tasks() {
         </select>
 
         <input
-          className="inp"
+          className="inp dark:[color-scheme:dark]"
           type="date"
           value={f.dueDate}
           onChange={(e) => setF({ ...f, dueDate: e.target.value })}
@@ -318,6 +318,7 @@ export function Habits() {
 
   const [name, setName] = useState("");
   const [done, setDone] = useState({});
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   useEffect(() => {
     items?.forEach((h) =>
@@ -330,9 +331,26 @@ export function Habits() {
     );
   }, [items]);
 
-  const days = [...Array(7)].map((_, i) =>
-    new Date(Date.now() - (6 - i) * 864e5).toISOString().slice(0, 10),
-  );
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+
+  const startDay = (firstDay.getDay() + 6) % 7;
+  const daysInMonth = lastDay.getDate();
+
+  const calendarDays = [];
+
+  for (let i = 0; i < startDay; i++) {
+    calendarDays.push(null);
+  }
+
+  for (let i = 1; i <= daysInMonth; i++) {
+    calendarDays.push(
+      `${year}-${String(month + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`,
+    );
+  }
 
   const add = async (e) => {
     e.preventDefault();
@@ -403,31 +421,101 @@ export function Habits() {
 
       {items?.map((h) => (
         <div key={h._id} className="card">
-          <div className="flex justify-between mb-2">
-            <b>{h.name}</b>
+          <div className="flex flex-col md:flex-row md:items-start gap-6">
 
-            <span className="text-sm text-stone-500">
-              {streak(h)}-day streak
-            </span>
-          </div>
+            {/* HABIT INFO */}
+            <div className="md:w-48 shrink-0">
+              <b className="text-lg">{h.name}</b>
 
-          <div className="flex gap-2">
-            {days.map((d) => (
-              <button
-                type="button"
-                key={d}
-                onClick={() => tick(h, d)}
-                className={`flex-1 rounded-lg py-2 text-xs border ${
-                  done[h._id]?.includes(d)
-                    ? "bg-teal-700 text-white border-teal-700"
-                    : ""
-                }`}
-              >
-                {new Date(d).toLocaleDateString("en", {
-                  weekday: "short",
+              <div className="text-sm text-stone-500 mt-2">
+                {streak(h)}-day streak
+              </div>
+            </div>
+
+            {/* CALENDAR */}
+            <div className="w-fit">
+
+              {/* Month navigation */}
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentMonth(new Date(year, month - 1, 1))
+                  }
+                  className="p-1 rounded hover:bg-stone-100"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                <h3 className="font-semibold text-sm">
+                  {currentMonth.toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </h3>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentMonth(new Date(year, month + 1, 1))
+                  }
+                  className="p-1 rounded hover:bg-stone-100"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+
+              {/* Weekdays */}
+              <div className="grid grid-cols-7 gap-1">
+                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
+                  (day) => (
+                    <div
+                      key={day}
+                      className="w-8 text-center text-[10px] text-stone-500"
+                    >
+                      {day[0]}
+                    </div>
+                  )
+                )}
+              </div>
+
+              {/* Dates */}
+              <div className="grid grid-cols-7 gap-1 mt-1">
+                {calendarDays.map((d, index) => {
+                  if (!d) {
+                    return <div key={`empty-${index}`} className="w-8 h-8" />;
+                  }
+
+                  const completed = done[h._id]?.includes(d);
+                  const isToday = d === today();
+                  const isFuture = d > today();
+
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      disabled={isFuture}
+                      onClick={() => tick(h, d)}
+                      className={`
+                        w-8 h-8 rounded-md border text-xs
+                        flex items-center justify-center
+                        ${
+                          completed
+                            ? "bg-teal-700 text-white border-teal-700"
+                            : isToday
+                            ? "border-teal-600 text-teal-700 font-bold"
+                            : "border-stone-200 hover:bg-stone-100"
+                        }
+                        ${isFuture ? "opacity-40 cursor-not-allowed" : ""}
+                      `}
+                    >
+                      {new Date(d + "T00:00:00").getDate()}
+                    </button>
+                  );
                 })}
-              </button>
-            ))}
+              </div>
+
+            </div>
           </div>
         </div>
       ))}
