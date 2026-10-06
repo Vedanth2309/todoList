@@ -29,6 +29,7 @@ func Setup(app *fiber.App) {
 	crud(p, "reminders", controllers.Reminders)
 	crud(p, "diary", controllers.Diary)
 	crud(p, "notes", controllers.Notes)
+	p.Get("/search/autocomplete", controllers.Autocomplete)
 	p.Get("/search", controllers.Search)
 	p.Get("/analytics/dashboard", controllers.Dashboard)
 	p.Get("/settings", controllers.Me)

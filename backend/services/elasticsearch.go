@@ -69,3 +69,93 @@ func Search(userID, q, typ, tag, from, to string) ([]map[string]any, error) {
 	}
 	return out, nil
 }
+
+func Autocomplete(userID, q, typ string) ([]map[string]any, error) {
+	if !config.ESEnabled() {
+			return nil, errors.New(
+					"Search is not configured (ELASTICSEARCH_URL is empty)",
+			)
+	}
+
+	filter := []any{
+			map[string]any{
+					"term": map[string]any{
+							"userId.keyword": userID,
+					},
+			},
+	}
+
+	if typ != "" {
+			filter = append(
+					filter,
+					map[string]any{
+							"term": map[string]any{
+									"type.keyword": typ,
+							},
+					},
+			)
+	}
+
+	query := map[string]any{
+			"bool": map[string]any{
+					"filter": filter,
+					"must": []any{
+							map[string]any{
+									"multi_match": map[string]any{
+											"query":  q,
+											"type":   "bool_prefix",
+											"fields": []string{
+													"title^4",
+													"content",
+													"tags",
+											},
+									},
+							},
+					},
+			},
+	}
+
+	res, code, err := config.ESRequest(
+			"POST",
+			"/"+idxAll+"/_search?ignore_unavailable=true&allow_no_indices=true",
+			map[string]any{
+					"query": query,
+					"size":  8,
+					"_source": []string{
+							"title",
+							"type",
+					},
+			},
+	)
+
+	if err != nil || code >= 300 {
+			return nil, errors.New("Search service unavailable")
+	}
+
+	out := []map[string]any{}
+	seen := map[string]bool{}
+
+	hits, _ := res["hits"].(map[string]any)
+	list, _ := hits["hits"].([]any)
+
+	for _, x := range list {
+			h, _ := x.(map[string]any)
+			s, _ := h["_source"].(map[string]any)
+
+			title, _ := s["title"].(string)
+
+			if title == "" || seen[title] {
+					continue
+			}
+
+			seen[title] = true
+
+			out = append(out, map[string]any{
+					"id":    h["_id"],
+					"type":  s["type"],
+					"title": title,
+			})
+	}
+
+	return out, nil
+}

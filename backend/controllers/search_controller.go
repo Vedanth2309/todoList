@@ -21,3 +21,24 @@ func Search(c *fiber.Ctx) error {
 	}
 	return utils.OK(c, res)
 }
+
+
+func Autocomplete(c *fiber.Ctx) error {
+    q := strings.TrimSpace(c.Query("q"))
+
+    if q == "" {
+        return utils.OK(c, []any{})
+    }
+
+    res, err := services.Autocomplete(
+        middleware.UserID(c).Hex(),
+        q,
+        c.Query("type"),
+    )
+
+    if err != nil {
+        return utils.Fail(c, 502, err.Error())
+    }
+
+    return utils.OK(c, res)
+}

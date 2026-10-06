@@ -561,6 +561,9 @@ export function SearchPage() {
   const [type, setType] = useState("");
   const [r, setR] = useState(null);
   const [err, setErr] = useState("");
+    // Autocomplete suggestions
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestErr, setSuggestErr] = useState("");
 
   useEffect(() => {
     if (!q) return setR(null);
@@ -579,17 +582,87 @@ export function SearchPage() {
     return () => clearTimeout(t);
   }, [q, type]);
 
+    // Autocomplete
+  useEffect(() => {
+    const value = q.trim();
+
+    // Don't request suggestions for very short searches
+    if (value.length < 2) {
+      setSuggestions([]);
+      setSuggestErr("");
+      return;
+    }
+
+    // Small debounce so Elasticsearch isn't called
+    // on every single keystroke
+    const t = setTimeout(() => {
+      api
+        .get("/search/autocomplete", {
+          params: {
+            q: value,
+            type,
+          },
+        })
+        .then((data) => {
+          setSuggestions(Array.isArray(data) ? data : []);
+          setSuggestErr("");
+        })
+        .catch((e) => {
+          setSuggestions([]);
+          setSuggestErr(e.message);
+        });
+    }, 200);
+
+    return () => clearTimeout(t);
+  }, [q, type]);
+
+  const chooseSuggestion = (title) => {
+    setQ(title);
+    setSuggestions([]);
+    setSuggestErr("");
+  };
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Search</h1>
 
       <div className="flex gap-2">
         <input
-          className="inp"
+          className="inp w-full"
           placeholder="Search tasks, diary and notes"
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setSuggestions([]);
+          }}
+          autoComplete="off"
         />
+
+        {suggestions.length > 0 && (
+          <div className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-lg border border-stone-200 bg-white shadow-lg dark:border-stone-700 dark:bg-stone-900">
+            {suggestions.map((s) => (
+              <button
+                key={`${s.type}-${s.id}`}
+                type="button"
+                className="block w-full border-b border-stone-100 px-3 py-3 text-left last:border-b-0 hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-800"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => chooseSuggestion(s.title)}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="truncate font-medium">
+                    {s.title}
+                  </span>
+
+                  {s.type && (
+                    <span className="shrink-0 rounded bg-teal-100 px-2 py-0.5 text-xs text-teal-800">
+                      {s.type}
+                    </span>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
 
         <select
           className="inp w-auto"
@@ -602,6 +675,12 @@ export function SearchPage() {
           <option value="note">Notes</option>
         </select>
       </div>
+
+      {suggestErr && (
+        <p className="text-sm text-amber-600">
+          Suggestions unavailable: {suggestErr}
+        </p>
+      )}
 
       {err && <p className="text-red-600">{err}</p>}
 
